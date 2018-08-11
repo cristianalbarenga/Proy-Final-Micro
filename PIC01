@@ -1,0 +1,56 @@
+//********** LCD CONEXION DEL MODULO
+sbit LCD_RS at RB0_bit;
+sbit LCD_EN at RB1_bit;
+
+sbit LCD_D4 at RB2_bit;
+sbit LCD_D5 at RB3_bit;
+sbit LCD_D6 at RB4_bit;
+sbit LCD_D7 at RB5_bit;
+
+//********** DIRECCION DE PINES
+sbit LCD_RS_Direction at TRISB0_bit;
+sbit LCD_EN_Direction at TRISB1_bit;
+
+sbit LCD_D4_Direction at TRISB2_bit;
+sbit LCD_D5_Direction at TRISB3_bit;
+sbit LCD_D6_Direction at TRISB4_bit;
+sbit LCD_D7_Direction at TRISB5_bit;
+
+//********** VARIABLES Y CONSTANTES
+const int Canal_sensorTemp = 1; // define canal del sensor (AN1)
+
+float Valor_sensorTemp; // variable del valor temperatura - Escala: -40 a 125 °C : 0,1 a 1,75 Volts : 0 a 1023
+                        
+float temperatura; // variable de temperatura en °C
+
+char texto[10];
+
+//********** PRINCIPAL
+void main() {
+     // PUERTO A
+     TRISA = 0b00000010; //salida=0 : entrada=1
+     ANSELA= 0b00000010; //digital=0 : analogico=1
+     PORTA = 0b00000000; //sin tension=0 : tension=1
+
+     // PUERTO B ----- para prueba sensor temperatura
+     TRISB = 0b00000000;
+     ANSELB= 0b00000000;
+     PORTB = 0b00000000;
+
+     // DISPLAY
+     LCD_Init(); // inicializa el LCD
+     LCD_Cmd(_LCD_CLEAR); //limpia el LCD
+     LCD_Cmd(_LCD_CURSOR_OFF); // borra el cursor
+
+     // LOOP DE EJECUCION
+     while(1){
+         Valor_sensorTemp= ADC_Read(Canal_sensorTemp); //lee sensor en volts y convierte a digital: 0,1 a 1,75 v => 0 a 1023
+         
+       //  temperatura= (Valor_sensorTemp * 5 / 31)-40; //transfora valor sensor en temperatura(°C)
+       
+         FloatToStr(Valor_sensorTemp, texto);
+       
+         LCD_Out(1,1,texto);//se mmuestra en pantalla el valor de la temp
+     }
+     
+}
