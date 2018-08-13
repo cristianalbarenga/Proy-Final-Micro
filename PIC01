@@ -17,13 +17,37 @@ sbit LCD_D6_Direction at TRISB4_bit;
 sbit LCD_D7_Direction at TRISB5_bit;
 
 //********** VARIABLES Y CONSTANTES
-const int Canal_sensorTemp = 1; // define canal del sensor (AN1)
+const int Canal_Sensor1 = 1; // define canal del sensor (AN1)
 
-float Valor_sensorTemp; // variable del valor temperatura - Escala: -40 a 125 °C : 0,1 a 1,75 Volts : 0 a 1023
-                        
-float temperatura; // variable de temperatura en °C
+int t1;
 
-char texto[10];
+char text1[6];
+
+//*************** FUNCIONES
+int Temperatura(int CanalSensor){
+/* calcula la Temperatura del sensor en°C, 
+se ingresa el canal del sensor */
+     
+     // conversiones del valor obtenido del sensor
+     float Val_Sensor_Bits=ADC_Read(CanalSensor); //sensa entrada y convierte a Digital 0v = 0: 5v = 1023;
+     
+     float Val_Sensor_Volts= Val_sensor_Bits * 5000 / 1023; //Convierte el valor digital en voltajes (miliVoltios)
+     
+     float Val_Sensor_Grados=(Val_Sensor_Volts - 500) / 10; //Convierte el valor del voltaje(miliVoltios) en °C
+
+     // correccion de salida
+     int parte_entera= Val_Sensor_Grados; // obtiene la parte entera del valor °C
+     
+     float parte_decimal= fabs(Val_Sensor_Grados - parte_entera); //obtiene la parte decimal del valor °C
+     
+     if (parte_entera>=0){ //para numeros positivos
+           if(parte_decimal>0.5){ parte_entera+=1;}  // si la parte decimal es mayor a 0.5 se le suma 1 al entero
+     }else{               //para numeros negativos
+           if(parte_decimal>0.5){ parte_entera-=1;} // se le resta 1
+     }
+     //salida
+     return parte_entera;  // devuelve la parte entera, o sea los °C
+}
 
 //********** PRINCIPAL
 void main() {
@@ -44,13 +68,12 @@ void main() {
 
      // LOOP DE EJECUCION
      while(1){
-         Valor_sensorTemp= ADC_Read(Canal_sensorTemp); //lee sensor en volts y convierte a digital: 0,1 a 1,75 v => 0 a 1023
-         
-       //  temperatura= (Valor_sensorTemp * 5 / 31)-40; //transfora valor sensor en temperatura(°C)
-       
-         FloatToStr(Valor_sensorTemp, texto);
-       
-         LCD_Out(1,1,texto);//se mmuestra en pantalla el valor de la temp
-     }
      
+         t1= temperatura(Canal_Sensor1);
+
+         IntToStr(t1, text1);
+
+         LCD_Out(1,1,text1);//se mmuestra en pantalla el valor de la temp
+     }
+
 }
