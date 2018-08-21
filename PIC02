@@ -1,0 +1,134 @@
+/*-------------------------------------------
+  ************* DEFINICIONES ***************
+-------------------------------------------*/
+//----LCD CONEXION DEL MODULO
+sbit LCD_RS at RB0_bit;
+sbit LCD_EN at RB1_bit;
+
+sbit LCD_D4 at RB4_bit;
+sbit LCD_D5 at RB5_bit;
+sbit LCD_D6 at RB6_bit;
+sbit LCD_D7 at RB7_bit;
+
+//----DIRECCION DE PINES
+sbit LCD_RS_Direction at TRISB0_bit;
+sbit LCD_EN_Direction at TRISB1_bit;
+
+sbit LCD_D4_Direction at TRISB4_bit;
+sbit LCD_D5_Direction at TRISB5_bit;
+sbit LCD_D6_Direction at TRISB6_bit;
+sbit LCD_D7_Direction at TRISB7_bit;
+
+
+/*-------------------------------------------
+  ********** VARIABLES Y CONSTANTES *********
+-------------------------------------------*/
+
+short int test;   //almacenaje de valor de recepcion (como int)
+
+short int count[]={0,0,0,0};   //contador: ayuda a marcar inicio y fin de recepcion
+
+
+
+/*-------------------------------------------
+  *************** FUNCIONES ****************
+-------------------------------------------*/
+
+/*__________Muestra de Datos Indicadores____________
+  Muestra los datos anexos(indicadores) a cada valor 
+  de temperatura. Decide en que renglon del display 
+  se escribe cada temp y agrega ºC. Se ingresa el 
+  caracter correspondiente a cada sensor y el indice
+  del array count*/
+  
+  void F_Datos_Indicadores(short int caracter, short int indice){
+           
+           if(count[indice]==0){ //si el valor de count es 0
+               switch(caracter){  //evalua el caracter
+                     case 0x23:   //caracter # - renglon 1
+                         LCD_Cmd(_LCD_FIRST_ROW); LCD_Out_Cp("Temp1: "); break; 
+                     case 0x24:   //caracter $ - renglon 2
+                         LCD_Cmd(_LCD_SECOND_ROW); LCD_Out_Cp("Temp2: "); break;
+                     case 0x25:   //caracter % - renglon 3
+                         LCD_Cmd(_LCD_THIRD_ROW); LCD_Out_Cp("Temp3: "); break;
+                     case 0x26:   //caracter & - renglon 4
+                         LCD_Cmd(_LCD_FOURTH_ROW); LCD_Out_Cp("Prmed: "); break;
+               }
+           }
+           
+           count[indice]++;   //incrementa 1 a la cuenta
+           
+           if(count[indice]==2){
+               LCD_Out_Cp("^C  ");   //escribe la unidad
+               count[indice]=0;   //vuleve la cuenta a 0
+           }
+  }
+
+
+/*-------------------------------------------
+  ********** EJECUCION PRINCIPAL ************
+-------------------------------------------*/
+void main() {
+     // PUERTO B ----- conexion de Display
+     TRISB = 0b00000000;
+     ANSELB= 0b00000000;
+     PORTB = 0b00000000;
+     
+     // PUERTO C ------ Comunicacion UART
+     TRISC = 0b10000000;   //define el puerto 7 como entrada
+     ANSELC= 0b00000000;
+     PORTC = 0b00000000;
+
+     // DISPLAY
+     LCD_Init();   //inicializa el LCD
+     LCD_Cmd(_LCD_CLEAR);   //limpia el LCD
+     LCD_Cmd(_LCD_CURSOR_OFF);   //borra el cursor
+
+     // UART
+     UART1_Init(1000);   //inicializa el modulo UART
+     delay_ms(100);   //espera hasta estabiliar el modulo UART
+
+
+     // LOOP DE EJECUCION
+     while(1){
+            /*explicacion: en al primera pasada detecta el caracter y escribe 
+            temp1: ,e incrementa el contador(a 1).
+            En las sucesivas pasadas, evita el switch por no tener el caracter 
+            especial y escribe los caracteres del valor de la temepratura en pantalla. 
+            En la ultima psada, detecta el caracter especial, suma otro al contador(a 2)
+            y escribe la parte final del renglon*/
+            
+            if(UART1_Data_Ready()){  //verifica recepcion de Datos
+               test= UART1_Read();   //guarda en variable el dato(como un int)
+               //temp1: #, temp2: $, temp3: %, promedio: &
+               
+               switch(test){
+                  //--- temperatura 1
+                  case 0x23:   //caracter #
+                       F_Datos_Indicadores(0x23,0);
+                       break;
+                  
+                  //--- temperatura 2
+                  case 0x24:   //caracter $
+                       F_Datos_Indicadores(0x24,1);
+                       break;
+
+                  //---temperatura 3
+                  case 0x25:   //caracter %
+                       F_Datos_Indicadores(0x25,2);
+                       break;
+
+                  //--- temperatura promedio
+                  case 0x26:   //caracter &
+                       F_Datos_Indicadores(0x26,3);
+                       break;
+               }
+               
+               // si test es mayor/igual al caracter 0(sera un numero), o el singo "-"
+               if((test>=0x30)||(test==0x2D)){
+                 LCD_Chr_CP(test);   //escribe en pantalla
+               }
+            }
+
+     }
+}
