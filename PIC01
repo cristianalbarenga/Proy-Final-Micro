@@ -1,52 +1,204 @@
-//********** LCD CONEXION DEL MODULO
+/*-------------------------------------------
+  ************** DEFINICIONES ***************
+-------------------------------------------*/
+// LCD CONEXION DEL MODULO
 sbit LCD_RS at RB0_bit;
 sbit LCD_EN at RB1_bit;
 
-sbit LCD_D4 at RB2_bit;
-sbit LCD_D5 at RB3_bit;
-sbit LCD_D6 at RB4_bit;
-sbit LCD_D7 at RB5_bit;
+sbit LCD_D4 at RB4_bit;
+sbit LCD_D5 at RB5_bit;
+sbit LCD_D6 at RB6_bit;
+sbit LCD_D7 at RB7_bit;
 
-//********** DIRECCION DE PINES
+// DIRECCION DE PINES
 sbit LCD_RS_Direction at TRISB0_bit;
 sbit LCD_EN_Direction at TRISB1_bit;
 
-sbit LCD_D4_Direction at TRISB2_bit;
-sbit LCD_D5_Direction at TRISB3_bit;
-sbit LCD_D6_Direction at TRISB4_bit;
-sbit LCD_D7_Direction at TRISB5_bit;
+sbit LCD_D4_Direction at TRISB4_bit;
+sbit LCD_D5_Direction at TRISB5_bit;
+sbit LCD_D6_Direction at TRISB6_bit;
+sbit LCD_D7_Direction at TRISB7_bit;
 
-//********** VARIABLES Y CONSTANTES
-const int Canal_Sensor1 = 1; // define canal del sensor (AN1)
 
-int t1;
+/*-------------------------------------------
+  ********** VARIABLES Y CONSTANTES *********
+-------------------------------------------*/
 
-char text1[6];
+const int Canal_Sensor1 = 0;   //define canal del sensor (RA1/AN1)
+const int Canal_Sensor2 = 1;   //define canal del sensor (RA2/AN2)
+const int Canal_Sensor3 = 2;   //define canal del sensor (RA5/AN4)
 
-//*************** FUNCIONES
-int Temperatura(int CanalSensor){
-/* calcula la Temperatura del sensor en°C, 
-se ingresa el canal del sensor */
-     
-     // conversiones del valor obtenido del sensor
-     float Val_Sensor_Bits=ADC_Read(CanalSensor); //sensa entrada y convierte a Digital 0v = 0: 5v = 1023;
-     
-     float Val_Sensor_Volts= Val_sensor_Bits * 5000 / 1023; //Convierte el valor digital en voltajes (miliVoltios)
-     
-     float Val_Sensor_Grados=(Val_Sensor_Volts - 500) / 10; //Convierte el valor del voltaje(miliVoltios) en °C
+int temperatura1, temperatura2, temperatura3; // variable de temperatura sensor 1, 2 y 3
 
-     // correccion de salida
-     int parte_entera= Val_Sensor_Grados; // obtiene la parte entera del valor °C
-     
-     float parte_decimal= fabs(Val_Sensor_Grados - parte_entera); //obtiene la parte decimal del valor °C
-     
-     if (parte_entera>=0){ //para numeros positivos
-           if(parte_decimal>0.5){ parte_entera+=1;}  // si la parte decimal es mayor a 0.5 se le suma 1 al entero
-     }else{               //para numeros negativos
-           if(parte_decimal>0.5){ parte_entera-=1;} // se le resta 1
+int temp_promedio;   //almacena Promedio de Temperaturas
+
+char text1[7], text2[7], text3[7];   //texto de las temperaturas 1, 2 y 3
+
+char text_prom[7];   //texto del Promedio de temperaturas
+
+
+/*-------------------------------------------
+  *************** FUNCIONES ***************
+-------------------------------------------*/
+
+/*_____Calculo de Temperatura______________
+  toma la temperatura del sensor y devuelve
+  el valor en °C */
+
+  int F_Calc_Temp(int CanalSensor){   //se ingresa el canal del sensor
+
+     //_____conversiones del valor sensado______//
+     //sensa entrada y convierte a Digital 0v = 0: 5v = 1023;
+     float Val_Sensor_Bits=ADC_Read(CanalSensor);
+
+     //Convierte el valor digital en voltajes (miliVoltios)
+     float Val_Sensor_Volts= Val_sensor_Bits * 5000 / 1023;
+
+     //Convierte el valor del voltaje(miliVoltios) en °C
+     float Val_Sensor_Grados=(Val_Sensor_Volts - 500) / 10;
+
+
+     //_____correccion de salida_____//
+     int parte_entera= Val_Sensor_Grados;   //parte entera del valor °C
+
+     float parte_decimal= fabs(Val_Sensor_Grados - parte_entera);   //parte decimal del valor °C
+
+     if (parte_entera>=0){   //para numeros positivos
+           if(parte_decimal>0.5){ parte_entera+=1;}   //si parte decimal es mayor a 0.5 se le suma 1 al entero
+     }else{                 //para numeros negativos
+           if(parte_decimal>0.5){ parte_entera-=1;}   //se le resta 1
      }
-     //salida
-     return parte_entera;  // devuelve la parte entera, o sea los °C
+     
+     //_____salida____//
+     return parte_entera;  //devuelve la parte entera, o sea los °C
+}
+
+
+/*_______Calculo Promedio de Temperaturas________
+  se ingresan las tres temperaturas sensadas y
+  se devuelve el valor promedio de estas*/
+
+  int F_Promedio(int temp1,int temp2, int temp3){
+      
+      int sum=(temp1 + temp2 + temp3);   //suma las temperaturas
+      
+      float prom= (sum+0.0) / 3;   //promedio de las temperaturas
+
+      int entero= prom;   //parte entera del promedio
+      
+      float decimal=fabs(prom-entero);   //parte decimal del promedio
+
+      if(entero>=0){   //  aproximacion
+            if(decimal>0.6){entero+=1;}
+      }else{
+            if(decimal>0.6){entero-=1;}
+      }
+
+      //_____salida_____//
+      return entero; //devuelve el promedio
+  }
+
+
+  
+/*-------------------------------------------
+  ********** EJECUCION PRINCIPAL ************
+-------------------------------------------*/
+
+void main() {
+     // PUERTO A ----- conexion entrada de sensores
+     TRISA = 0b00000111; //salida=0 : entrada=1
+     ANSELA= 0b00000111; //digital=0 : analogico=1
+     PORTA = 0b00000000; //sin tension=0 : tension=1
+
+     // PUERTO B ----- conexion al display
+     TRISB = 0b00000000;
+     ANSELB= 0b00000000;
+     PORTB = 0b00000000;
+
+     // PUERTO C ----- conexion modulo UART (comunicacion)
+     TRISC = 0b10000000;
+     ANSELC= 0b00000000;
+     PORTC = 0b00000000;
+
+     // DISPLAY
+     LCD_Init();   //inicializa el LCD
+     LCD_Cmd(_LCD_CLEAR);   //limpia el LCD
+     LCD_Cmd(_LCD_CURSOR_OFF);   //borra el cursor
+
+     // UART
+     UART1_Init(1000);   //inicializa modulo UART (velocidad 100 bps)
+     delay_ms(100);   //espera estabilar moduo UART
+     
+     // LOOP DE EJECUCION
+     while(1){
+
+         //---Calculo de Temeraturas---//
+         temperatura1= F_Calc_Temp(Canal_Sensor1);
+         temperatura2= F_Calc_Temp(Canal_Sensor2);
+         temperatura3= F_Calc_Temp(Canal_Sensor3);
+         temp_promedio=F_Promedio(temperatura1,temperatura2,temperatura3);
+
+         //---Conversion de valor a String---//
+         IntToStr(temperatura1,text1);
+         IntToStr(temperatura2,text2);
+         IntToStr(temperatura3,text3);
+         IntToStr(temp_promedio, text_prom);
+
+         //---Muestra Temp Sensor 1---//
+         LCD_Cmd(_LCD_FIRST_ROW);
+         LCD_Out_CP("temp1:");
+         LCD_Out_CP(text1);   //en pantalla el valor de la temp 1
+         LCD_Out_CP("^C");
+
+         //---Muestra Temp Sensor 2---//
+         LCD_Cmd(_LCD_SECOND_ROW);
+         LCD_Out_CP("temp2:");
+         LCD_Out_CP(text2);   //en pantalla el valor de la temp 2
+         LCD_Out_CP("^C");
+
+         //--- Muestra Temp Sensor 3---//
+         LCD_Cmd(_LCD_THIRD_ROW);
+         LCD_Out_CP("temp3:");
+         LCD_Out_CP(text3);   //en pantalla el valor de la temp 3
+         LCD_Out_CP("^C");
+
+         //---Muestra Temepratura Promedio---//
+         LCD_Cmd(_LCD_FOURTH_ROW);
+         LCD_Out_CP("prmed:");
+         LCD_Out_CP(text_prom);   //en pantalla el valor del promedio
+         LCD_Out_CP("^C");
+
+
+         //---Envio por UART---//
+         //Temperatura sensor 1
+         UART1_Write(0x23);   //envia singo # para marcar inicio temp1
+         LTrim(text1);   //corta espacios blancos del string
+         UART1_Write_Text(text1);   //envia string de temperatura
+         UART1_Write(0x23);   //envia singo # para marcar fin temp1
+
+         //Temperatura sensor 2
+         UART1_Write(0x24);   //singo $ inicio
+         LTrim(text2);
+         UART1_Write_Text(text2);
+         UART1_Write(0x24);   //singo $ fin
+
+         //Temperatura sensor 3
+         UART1_Write(0x25);   //signo % inicio
+         LTrim(text3);
+         UART1_Write_Text(text3);
+         UART1_Write(0x25);   //signo % fin
+         
+         //Temperatura Promedio
+         UART1_Write(0x26);   //signo & inicio
+         LTrim(text_prom);
+         UART1_Write_Text(text_prom);
+         UART1_Write(0x26);   //signo & fin
+         
+         //---tiempo de espera---//
+         delay_ms(1000);   // espera 1 segundo para sensar nuevamente
+
+     }
+
 }
 
 //********** PRINCIPAL
