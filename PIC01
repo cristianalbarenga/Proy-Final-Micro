@@ -200,32 +200,3 @@ void main() {
      }
 
 }
-
-//********** PRINCIPAL
-void main() {
-     // PUERTO A
-     TRISA = 0b00000010; //salida=0 : entrada=1
-     ANSELA= 0b00000010; //digital=0 : analogico=1
-     PORTA = 0b00000000; //sin tension=0 : tension=1
-
-     // PUERTO B ----- para prueba sensor temperatura
-     TRISB = 0b00000000;
-     ANSELB= 0b00000000;
-     PORTB = 0b00000000;
-
-     // DISPLAY
-     LCD_Init(); // inicializa el LCD
-     LCD_Cmd(_LCD_CLEAR); //limpia el LCD
-     LCD_Cmd(_LCD_CURSOR_OFF); // borra el cursor
-
-     // LOOP DE EJECUCION
-     while(1){
-     
-         t1= temperatura(Canal_Sensor1);
-
-         IntToStr(t1, text1);
-
-         LCD_Out(1,1,text1);//se mmuestra en pantalla el valor de la temp
-     }
-
-}
